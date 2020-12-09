@@ -2,51 +2,257 @@
 
 ## Solution:
 
+SELECT CONCAT(Name,'(',LEFT(Occupation,1),')')
+FROM OCCUPATIONS
+ORDER BY Name;
+
+WITH profession_count AS(
+SELECT Occupation, COUNT(*) AS 'profession_number'
+FROM OCCUPATIONS
+GROUP BY Occupation)
+
+SELECT CONCAT('There are a total of ',profession_number,' ',INSERT(Occupation,1,1,LCASE(LEFT(Occupation,1))),'s.')
+FROM profession_count
+ORDER BY profession_number, Occupation;
+
 ## Challenge: https://www.hackerrank.com/challenges/occupations/problem
 
 ## Solution:
+
+SELECT dt.d,pt.p,st.s,act.a
+FROM (SELECT IF(Occupation='Doctor',Name,NULL)d,
+        ROW_NUMBER() OVER(ORDER BY IF(Occupation='Doctor',0,1),Name)rd
+      FROM OCCUPATIONS)dt
+JOIN (SELECT IF(Occupation='Professor',Name,Null)p,
+        ROW_NUMBER() OVER(ORDER BY IF(Occupation='Professor',0,1),Name)rp
+      FROM OCCUPATIONS)pt
+ON dt.rd = pt.rp
+JOIN (SELECT IF(Occupation='Singer',Name,NULL)s,
+        ROW_NUMBER() OVER(ORDER BY IF(Occupation='Singer',0,1),NAME)rs
+      FROM OCCUPATIONS)st
+ON pt.rp = st.rs
+JOIN (SELECT IF(Occupation='Actor',Name,NULL)a,
+        ROW_NUMBER() OVER(ORDER BY IF(Occupation='Actor',0,1),NAME)ra
+      FROM OCCUPATIONS)act
+ON (st.rs = act.ra) AND 
+   ((NOT dt.d IS NULL) OR (NOT pt.p IS NULL) OR (NOT st.s IS NULL) OR (NOT act.a IS NULL))
+ORDER BY dt.rd;
 
 ## Challenge: https://www.hackerrank.com/challenges/binary-search-tree-1/problem
 
 ## Solution:
 
+WITH child_count AS(
+SELECT P, 
+COUNT(*) AS 'num_children'
+FROM BST
+WHERE P IS NOT NULL
+GROUP BY P)
+
+SELECT N, (CASE
+WHEN BST.P IS NULL THEN 'Root'
+WHEN child_count.num_children IS NULL THEN 'Leaf'
+ELSE 'Inner'
+END)
+FROM BST
+LEFT JOIN child_count
+ON BST.N = child_count.P
+ORDER BY BST.N;
+
+
 ## Challenge: https://www.hackerrank.com/challenges/the-company/problem
 
 ## Solution:
+
+SELECT DISTINCT Company.company_code,
+    MAX(Company.founder),
+    COUNT(DISTINCT Lead_Manager.lead_manager_code),
+    COUNT(DISTINCT Senior_Manager.senior_manager_code),
+    COUNT(DISTINCT Manager.manager_code),
+    COUNT(DISTINCT Employee.employee_code)
+FROM (((Company 
+LEFT JOIN Lead_Manager
+ON Company.company_code = Lead_Manager.company_code)
+LEFT JOIN Senior_Manager
+ON (Lead_Manager.company_code = Senior_Manager.company_code 
+    AND Lead_Manager.lead_manager_code = Senior_Manager.lead_manager_code))
+LEFT JOIN Manager
+ON (Senior_Manager.company_code = Manager.company_code AND
+    Senior_Manager.lead_manager_code = Manager.lead_manager_code AND
+    Senior_Manager.senior_manager_code = Manager.senior_manager_code))
+LEFT JOIN Employee
+ON (Manager.company_code = Employee.company_code AND
+    Manager.lead_manager_code = Employee.lead_manager_code AND
+    Manager.senior_manager_code = Employee.senior_manager_code AND
+    Manager.manager_code = Employee.manager_code)
+GROUP BY Company.company_code
+ORDER BY Company.company_code
 
 ## Challenge: https://www.hackerrank.com/challenges/weather-observation-station-18/problem
 
 ## Solution:
 
+SELECT ROUND(MAX(LAT_N) - MIN(LAT_N) + MAX(LONG_W) - MIN(LONG_W),4)
+FROM STATION;
+
 ## Challenge: https://www.hackerrank.com/challenges/weather-observation-station-19/problem
 
 ## Solution:
+
+SELECT ROUND(SQRT(POWER(MAX(LAT_N)-MIN(LAT_N),2) + POWER(MAX(LONG_W)-MIN(LONG_W),2)),4)
+FROM STATION;
 
 ## Challenge: https://www.hackerrank.com/challenges/weather-observation-station-20/problem
 
 ## Solution:
 
+SELECT ROUND(AVG(st.l),4)
+FROM (SELECT LAT_N AS 'l', ROW_NUMBER() OVER(ORDER BY LAT_N) AS 'r'
+      FROM STATION)st
+JOIN (SELECT COUNT(*)/2 AS 'c' FROM STATION)ct
+ON (ct.c < CEIL(ct.c) AND st.r = CEIL(ct.c)) OR 
+   (ct.c = CEIL(ct.c) AND (st.r = ct.c OR st.r = ct.c + 1));
+
 ## Challenge: https://www.hackerrank.com/challenges/the-report/problem
 
 ## Solution:
+
+SELECT IF(Grades.Grade>7,Students.Name,NULL)a, Grades.Grade, Students.Marks
+FROM Students 
+JOIN Grades
+ON Grades.Min_Mark <= Students.Marks AND Students.Marks <= Grades.Max_Mark
+ORDER BY Grades.Grade DESC, a, Students.Marks;
 
 ## Challenge: https://www.hackerrank.com/challenges/full-score/problem
 
 ## Solution:
 
-## Challenge: 
+SELECT id, n
+FROM (SELECT Hackers.hacker_id AS 'id', MAX(Hackers.name) AS 'n', 
+      SUM(IF(Submissions.score = Difficulty.score,1,0))s
+      FROM Hackers JOIN Submissions
+      ON Hackers.hacker_id = Submissions.hacker_id
+      JOIN Challenges
+      ON Challenges.challenge_id = Submissions.challenge_id
+      JOIN Difficulty
+      ON Challenges.difficulty_level = Difficulty.difficulty_level
+      GROUP BY Hackers.hacker_id)t
+WHERE s > 1
+ORDER BY s DESC, id;
+
+## Challenge: https://www.hackerrank.com/challenges/harry-potter-and-wands/problem
 
 ## Solution:
 
-## Challenge:
+SELECT t.id, t.age, t.cn, t.p
+FROM
+(SELECT Wands.id AS 'id', Wands_Property.age AS 'age',
+ Wands.coins_needed As 'cn', Wands.power AS 'p',
+ Wands_Property.is_evil as 'ise'
+ FROM Wands 
+ JOIN Wands_Property
+ ON Wands.code = Wands_Property.code)t
+ JOIN 
+ (SELECT Wands_Property.age AS 'age', Wands.power AS 'p',
+         MIN(Wands.coins_needed) AS 'm'
+  FROM Wands
+  JOIN Wands_Property
+  ON Wands.code = Wands_Property.code
+  GROUP BY Wands_Property.age, Wands.power)a
+  ON t.age = a.age AND t.p = a.p
+  WHERE t.cn = a.m AND t.ise=0
+  ORDER BY t.p DESC, t.age DESC;
+
+## Challenge: https://www.hackerrank.com/challenges/challenges/problem
 
 ## Solution:
 
-## Challenge:
+WITH t AS(SELECT Hackers.hacker_id, Hackers.name, COUNT(Challenges.challenge_id) AS nc
+          FROM Hackers 
+          JOIN Challenges 
+          ON Hackers.hacker_id = Challenges.hacker_id
+          GROUP BY Hackers.hacker_id, Hackers.name),
+    mt AS(SELECT MAX(nc) AS m FROM t),
+    ht AS(SELECT COUNT(hacker_id) AS hc, nc
+          FROM t
+          GROUP BY nc)
+SELECT t.hacker_id, t.name, t.nc
+FROM t
+CROSS JOIN mt
+JOIN ht
+ON t.nc = ht.nc
+WHERE t.nc = mt.m OR ht.hc = 1
+ORDER BY t.nc DESC, t.hacker_id;
+
+
+## Challenge: https://www.hackerrank.com/challenges/contest-leaderboard/problem
 
 ## Solution:
 
-## Challenge:
+SELECT DISTINCT hacker_id, name, ts
+FROM
+(SELECT h.hacker_id, h.name, SUM(MAX(s.score)) OVER(PARTITION BY h.hacker_id, h.name) AS ts
+FROM Hackers h 
+JOIN Submissions s
+ON h.hacker_id = s.hacker_id
+GROUP BY h.hacker_id, h.name, s.challenge_id)
+WHERE ts > 0
+ORDER BY ts DESC, hacker_id;
+
+## Challenge: https://www.hackerrank.com/challenges/sql-projects/problem
 
 ## Solution:
+
+WITH di AS(SELECT Start_date AS s, End_Date AS e,
+    IF(SUM(TO_DAYS(Start_Date)) OVER(ORDER BY Start_Date
+                                     ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) = 
+      2 * TO_DAYS(Start_Date) - 1,1,0) AS nf,
+    IF(SUM(TO_DAYS(End_Date)) OVER(ORDER BY End_Date
+                                   ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) = 
+       2 * TO_DAYS(END_Date) + 1,1,0) AS nl
+FROM Projects)
+
+SELECT st.s, et.e
+FROM
+(SELECT s, ROW_NUMBER() OVER(ORDER BY nf, s) AS rn
+FROM di
+WHERE nf = 0)st
+JOIN
+(SELECT e, ROW_NUMBER() OVER(ORDER BY nl, e) AS rn
+ FROM di
+ WHERE nl = 0)et
+ON st.rn = et.rn
+ORDER BY DATEDIFF(et.e,st.s),st.s;
+
+
+## Challenge: https://www.hackerrank.com/challenges/placements/problem
+
+## Solution:
+
+SELECT s.Name FROM
+Students AS s
+JOIN Friends AS f
+ON s.ID = f.ID
+JOIN Packages AS p
+ON s.id = p.id
+JOIN Packages AS fp
+ON f.Friend_ID = fp.id
+WHERE fp.Salary > p.Salary
+ORDER BY fp.Salary;
+
+## Challenge: https://www.hackerrank.com/challenges/symmetric-pairs/problem
+
+## Solution:
+
+WITH f AS (SELECT X, Y, COUNT(*) AS c
+           FROM Functions
+           GROUP BY X, Y)
+
+
+SELECT f1.X, f1.Y
+FROM f AS f1
+JOIN f as f2
+ON f1.X = f2.Y AND f2.X = f1.Y
+WHERE (f1.X = f1.Y AND f1.c > 1) or f1.X < f1.Y
+ORDER BY f1.X;
 
