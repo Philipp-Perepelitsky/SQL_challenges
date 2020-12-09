@@ -1,1 +1,59 @@
+## Challenge: https://www.hackerrank.com/challenges/interviews/problem
 
+## Solution: 
+
+WITH cch AS (SELECT DISTINCT con.contest_id AS cid, con.hacker_id AS hid,
+                    con.name AS name, ch.challenge_id AS chid
+             FROM Contests con
+             JOIN Colleges col
+             ON con.contest_id = col.contest_id
+             JOIN Challenges ch
+             ON col.college_id = ch.college_id),
+     st AS (SELECT cch.cid AS cid, cch.hid AS hid, cch.name AS name,
+                   SUM(s.total_submissions) AS ts, SUM(s.total_accepted_submissions) AS tas
+                   FROM cch JOIN Submission_Stats s
+                   ON cch.chid = s.challenge_id
+                   GROUP BY cch.cid, cch.hid, cch.name),
+     vt AS (SELECT cch.cid AS cid, cch.hid AS hid, cch.name AS name,
+            SUM(v.total_views) AS tv, SUM(v.total_unique_views) AS tuv
+            FROM cch JOIN View_Stats v
+            ON cch.chid = v.challenge_id
+            GROUP BY cch.cid, cch.hid, cch.name)
+     SELECT st.cid, st.hid, st.name, st.ts, st.tas, vt.tv, vt.tuv
+     FROM st JOIN vt
+     ON st.cid = vt.cid
+     ORDER BY st.cid;
+
+## Challenge: https://www.hackerrank.com/challenges/15-days-of-learning-sql/problem
+
+## Solution: 
+
+WITH t AS (SELECT h.hacker_id AS id, s.submission_date AS d, COUNT(*) AS c,  
+           MAX(COUNT(*)) OVER (PARTITION BY s.submission_date) AS m,
+           COUNT(COUNT(*)) OVER (PARTITION BY h.hacker_id
+                                 ORDER BY s.submission_date
+                                 ROWS UNBOUNDED PRECEDING) AS p,
+           SUM(CASE WHEN COUNT(*)>0 THEN 1
+               ELSE 0
+               END) OVER (PARTITION BY h.hacker_id
+                                         ORDER BY s.submission_date
+                                         ROWS UNBOUNDED PRECEDING) AS gd
+           FROM Hackers h JOIN Submissions s
+           ON h.hacker_id = s.hacker_id
+           GROUP BY h.hacker_id, s.submission_date),
+     ht AS (SELECT d, MIN(id) AS id
+            FROM t
+            WHERE c = m
+            GROUP BY d),
+     nt AS (SELECT d, COUNT(*) AS n
+            FROM t
+            WHERE gd = (SELECT COUNT(DISTINCT submission_date)
+                              FROM Submissions
+                              WHERE submission_date <= d)
+            GROUP BY d)
+    SELECT  ht.d, nt.n, ht.id, h.name
+            FROM ht JOIN nt
+            ON ht.d = nt.d
+            JOIN Hackers h
+            ON ht.id = h.hacker_id
+            ORDER BY d;
